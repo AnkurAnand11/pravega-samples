@@ -29,6 +29,7 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.UUID;
@@ -49,14 +50,8 @@ public class HelloWorldReader {
         this.controllerURI = controllerURI;
     }
 
-    public void run() {
+    public void run() throws InterruptedException {
         StreamManager streamManager = StreamManager.create(controllerURI);
-        
-        final boolean scopeIsNew = streamManager.createScope(scope);
-        StreamConfiguration streamConfig = StreamConfiguration.builder()
-                .scalingPolicy(ScalingPolicy.fixed(1))
-                .build();
-        final boolean streamIsNew = streamManager.createStream(scope, streamName, streamConfig);
 
         final String readerGroup = UUID.randomUUID().toString().replace("-", "");
         final ReaderGroupConfig readerGroupConfig = ReaderGroupConfig.builder()
@@ -74,22 +69,25 @@ public class HelloWorldReader {
                                                                            ReaderConfig.builder().build())) {
             System.out.format("Reading all the events from %s/%s%n", scope, streamName);
             EventRead<String> event = null;
-            do {
+            while (true) {
                 try {
                     event = reader.readNextEvent(READER_TIMEOUT_MS);
                     if (event.getEvent() != null) {
                         System.out.format("Read event '%s'%n", event.getEvent());
                     }
+                    Thread.sleep(1000);
                 } catch (ReinitializationRequiredException e) {
                     //There are certain circumstances where the reader needs to be reinitialized
                     e.printStackTrace();
                 }
-            } while (event.getEvent() != null);
-            System.out.format("No more events from %s/%s%n", scope, streamName);
+            }
+
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
+        System.setProperty("pravega.client.loggers", "slf4j");
+        LoggerFactory.getLogger("io.pravega").info("Pravega client API is using SLF4J for logging.");
         Options options = getOptions();
         CommandLine cmd = null;
         try {
