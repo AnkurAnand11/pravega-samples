@@ -51,8 +51,6 @@ public class HelloWorldReader {
     }
 
     public void run() throws InterruptedException {
-        StreamManager streamManager = StreamManager.create(controllerURI);
-
         final String readerGroup = UUID.randomUUID().toString().replace("-", "");
         final ReaderGroupConfig readerGroupConfig = ReaderGroupConfig.builder()
                 .stream(Stream.of(scope, streamName))
@@ -75,7 +73,6 @@ public class HelloWorldReader {
                     if (event.getEvent() != null) {
                         System.out.format("Read event '%s'%n", event.getEvent());
                     }
-                    Thread.sleep(1000);
                 } catch (ReinitializationRequiredException e) {
                     //There are certain circumstances where the reader needs to be reinitialized
                     e.printStackTrace();

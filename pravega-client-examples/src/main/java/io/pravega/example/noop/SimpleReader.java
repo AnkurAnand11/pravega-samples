@@ -13,20 +13,14 @@ package io.pravega.example.noop;
 import io.pravega.client.ClientConfig;
 import io.pravega.client.EventStreamClientFactory;
 import io.pravega.client.admin.ReaderGroupManager;
-import io.pravega.client.stream.EventRead;
-import io.pravega.client.stream.EventStreamReader;
-import io.pravega.client.stream.ReaderConfig;
-import io.pravega.client.stream.ReaderGroupConfig;
-import io.pravega.client.stream.ReinitializationRequiredException;
-import io.pravega.client.stream.Serializer;
-import io.pravega.client.stream.Stream;
+import io.pravega.client.stream.*;
 
 import java.net.URI;
 import java.util.UUID;
 import java.util.function.Consumer;
 
 public class SimpleReader<T> implements Runnable {
-    private static final int READER_TIMEOUT_MS = 200000;
+    private static final int READER_TIMEOUT_MS = 20000;
 
     private String scope;
     private String streamName;
@@ -78,9 +72,15 @@ public class SimpleReader<T> implements Runnable {
                     if (eventData != null) {
                         onNext.accept(event.getEvent());
                     }
+                    Thread.sleep(200);
                 }
                 catch (ReinitializationRequiredException e) {
                     onError.accept(e);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                } catch (TruncatedDataException e) {
+                    // Data is truncated, Force the reader going forward to the next available event
+                    continue;
                 }
             }
         }
